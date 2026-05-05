@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Outlet Finder</title>
+</head>
+<body>
+
+<h2>Enter Outlet ID</h2>
+
+<input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
+<button onclick="checkId()">Submit</button>
+
+<p id="error" style="color:red;"></p>
+
+<script>
+
+function checkId() {
+    let id = document.getElementById("outletId").value;
+
+    // 6 digit validation
+    if (!/^\d{6}$/.test(id)) {
+        document.getElementById("error").innerText = "Please enter correct 6 digit ID";
+        return;
+    }
+
+    // Open new page with ID
+    window.open("Location_details.html?id=" + id, "_blank");
+}
+
+</script>
+
+</body>
+</html>

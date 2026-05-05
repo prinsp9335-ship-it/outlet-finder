@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Outlet Details</title>
+</head>
+<body>
+
+<h2>Outlet Details</h2>
+
+<p><b>Outlet ID:</b> <span id="id"></span></p>
+<p><b>Outlet Name:</b> <span id="name"></span></p>
+<p><b>Mobile Number:</b> <span id="mobile"></span></p>
+<p><b>Location:</b> <a id="location" target="_blank">Open Map</a></p>
+
+<script>
+
+const urlParams = new URLSearchParams(window.location.search);
+const outletId = urlParams.get("id");
+
+document.getElementById("id").innerText = outletId;
+
+const sheetURL = "https://opensheet.elk.sh/1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo/location";
+
+fetch(sheetURL)
+.then(res => res.json())
+.then(data => {
+
+    console.log(data[0]); // 👈 IMPORTANT (check actual column names)
+
+    let found = data.find(row => String(row["Outlet Id"]) === String(outletId));
+
+    if(found){
+
+        // 🔥 NAME
+        document.getElementById("name").innerText = found["Outlet Name"] || "N/A";
+
+        // 🔥 MOBILE (multiple fallback keys)
+        document.getElementById("mobile").innerText =
+            found["Phone Num"] ||
+            found["Phone Number"] ||
+            found["Mobile"] ||
+            "N/A";
+
+        // 🔥 LOCATION CLICKABLE
+        let loc = found["Location"];
+
+        if(loc){
+            document.getElementById("location").href = loc;
+            document.getElementById("location").innerText = "Open Map";
+        } else {
+            document.getElementById("location").innerText = "No Location";
+        }
+
+    } else {
+        alert("Outlet ID not found");
+    }
+
+})
+.catch(err => {
+    console.error(err);
+    alert("Error loading data");
+});
+
+</script>
+
+</body>
+</html>
