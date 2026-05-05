@@ -13,20 +13,17 @@
 <p id="error" style="color:red;"></p>
 
 <script>
-
 function checkId() {
     let id = document.getElementById("outletId").value;
 
-    // 6 digit validation
     if (!/^\d{6}$/.test(id)) {
         document.getElementById("error").innerText = "Please enter correct 6 digit ID";
         return;
     }
 
-    // Open new page with ID
-    window.open("result.html?id=" + id, "_blank");
+    // ✅ FIXED (no 404)
+    window.location.href = "result.html?id=" + id;
 }
-
 </script>
 
 </body>
