@@ -25,28 +25,15 @@ fetch(sheetURL)
 .then(res => res.json())
 .then(data => {
 
-    console.log(data[0]); // 👈 IMPORTANT (check actual column names)
-
     let found = data.find(row => String(row["Outlet Id"]) === String(outletId));
 
     if(found){
-
-        // 🔥 NAME
         document.getElementById("name").innerText = found["Outlet Name"] || "N/A";
+        document.getElementById("mobile").innerText = found["Phone Num"] || found["Phone Number"] || found["Mobile"] || "N/A";
 
-        // 🔥 MOBILE (multiple fallback keys)
-        document.getElementById("mobile").innerText =
-            found["Phone Num"] ||
-            found["Phone Number"] ||
-            found["Mobile"] ||
-            "N/A";
-
-        // 🔥 LOCATION CLICKABLE
         let loc = found["Location"];
-
         if(loc){
             document.getElementById("location").href = loc;
-            document.getElementById("location").innerText = "Open Map";
         } else {
             document.getElementById("location").innerText = "No Location";
         }
@@ -55,12 +42,7 @@ fetch(sheetURL)
         alert("Outlet ID not found");
     }
 
-})
-.catch(err => {
-    console.error(err);
-    alert("Error loading data");
 });
-
 </script>
 
 </body>
