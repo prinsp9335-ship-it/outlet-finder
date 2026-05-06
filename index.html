@@ -4,10 +4,7 @@
   <title>Outlet Finder</title>
 
   <style>
-    body {
-      font-family: Arial;
-      margin: 20px;
-    }
+    body { font-family: Arial; margin: 20px; }
 
     .container {
       display: flex;
@@ -15,9 +12,7 @@
       align-items: flex-start;
     }
 
-    .box {
-      flex: 1;
-    }
+    .box { flex: 1; }
 
     input {
       padding: 8px;
@@ -30,53 +25,28 @@
       cursor: pointer;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-    }
+    ul { list-style: none; padding: 0; }
 
     li {
       margin-bottom: 15px;
       padding: 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      line-height: 1.6;  /* 🔥 spacing inside */
+      line-height: 1.6;
     }
 
-    .name {
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-
-    .distance {
-      margin-top: 6px;
-      margin-bottom: 6px;
-    }
-
-    .address {
-      font-size: 14px;
-      color: #555;
-      margin-bottom: 6px;
-    }
-
-    a {
-      text-decoration: none;
-      color: blue;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
+    .name { font-weight: bold; margin-bottom: 6px; }
+    .address { font-size: 14px; color: #555; margin-bottom: 6px; }
+    .distance { margin: 6px 0; }
 
   </style>
-
 </head>
 
 <body>
 
 <div class="container">
 
-  <!-- LEFT SIDE (अब ये nearest वाला है) -->
+  <!-- LEFT -->
   <div class="box">
     <h2>Find Nearest Outlets</h2>
 
@@ -86,7 +56,7 @@
     <ul id="result"></ul>
   </div>
 
-  <!-- RIGHT SIDE (अब ये ID वाला है) -->
+  <!-- RIGHT -->
   <div class="box">
     <h2>Enter Outlet ID</h2>
 
@@ -100,42 +70,35 @@
 
 <script>
 
-// 🔥 Redirect वाला part
 function checkId() {
   let id = document.getElementById("outletId").value;
 
   if (!/^\d{6}$/.test(id)) {
-    document.getElementById("error").innerText = "Please enter correct 6 digit ID";
+    document.getElementById("error").innerText = "Enter valid 6 digit ID";
     return;
   }
 
   window.location.href = "result.html?id=" + id;
 }
 
-// 🔥 Sheet ID
 const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
 
 async function findOutlets() {
 
   try {
-    const input = document.getElementById("ids").value;
-
-    const ids = input
+    const ids = document.getElementById("ids").value
       .split(/[\s,]+/)
       .map(x => x.trim())
       .filter(x => x !== "");
 
     const res = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/location`);
-
-    if (!res.ok) throw new Error("Sheet fetch failed");
-
     const data = await res.json();
 
     const filtered = data.filter(d =>
       ids.includes(String(d["Outlet Id"]))
     );
 
-    if (filtered.length === 0) {
+    if (!filtered.length) {
       alert("No matching Outlet IDs found");
       return;
     }
@@ -147,44 +110,41 @@ async function findOutlets() {
 
       function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const dLat = (lat2 - lat1) * Math.PI/180;
+        const dLon = (lon2 - lon1) * Math.PI/180;
 
-        const a = Math.sin(dLat/2) ** 2 +
-          Math.cos(lat1 * Math.PI/180) *
-          Math.cos(lat2 * Math.PI/180) *
-          Math.sin(dLon/2) ** 2;
+        const a = Math.sin(dLat/2)**2 +
+          Math.cos(lat1*Math.PI/180) *
+          Math.cos(lat2*Math.PI/180) *
+          Math.sin(dLon/2)**2;
 
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       }
 
       const result = filtered.map(o => ({
         name: o["Outlet Name"],
-        address: o["Address"],   // 👈 NEW
+        address: o["Address"],
+        link: o["Location"],   // ✅ FIXED
         distance: getDistance(
           userLat,
           userLon,
           parseFloat(o.Latitude),
           parseFloat(o.Longitude)
-        ),
-        link: o["link"]
+        )
       }));
 
-      result.sort((a, b) => a.distance - b.distance);
+      result.sort((a,b)=>a.distance-b.distance);
 
       const ul = document.getElementById("result");
       ul.innerHTML = "";
 
-      result.forEach(r => {
+      result.forEach(r=>{
         const li = document.createElement("li");
 
         li.innerHTML = `
           <div class="name">${r.name}</div>
-
-          <div class="address">${r.address || "Address not available"}</div>
-
+          <div class="address">${r.address || "No address"}</div>
           <div class="distance">Distance: ${r.distance.toFixed(2)} km</div>
-
           <a href="${r.link}" target="_blank">Open Location</a>
         `;
 
@@ -193,11 +153,10 @@ async function findOutlets() {
 
     });
 
-  } catch (err) {
-    alert("Error: " + err.message);
+  } catch(e){
+    alert("Error loading data");
   }
 }
-
 </script>
 
 </body>
