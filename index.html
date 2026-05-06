@@ -38,7 +38,6 @@
     .name { font-weight: bold; margin-bottom: 6px; }
     .address { font-size: 14px; color: #555; margin-bottom: 6px; }
     .distance { margin: 6px 0; }
-
   </style>
 </head>
 
@@ -121,24 +120,35 @@ async function findOutlets() {
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       }
 
-      const result = filtered.map(o => ({
-        name: o["Outlet Name"],
-        address: o["Address"],
-        link: o["Location"],   // ✅ FIXED
-        distance: getDistance(
-          userLat,
-          userLon,
-          parseFloat(o.Latitude),
-          parseFloat(o.Longitude)
-        )
-      }));
+      const result = [];
 
-      result.sort((a,b)=>a.distance-b.distance);
+      let prevLat = userLat;
+      let prevLon = userLon;
+
+      for (let o of filtered) {
+
+        const lat = parseFloat(o.Latitude);
+        const lon = parseFloat(o.Longitude);
+
+        const dist = getDistance(prevLat, prevLon, lat, lon);
+
+        result.push({
+          name: o["Outlet Name"],
+          address: o["Address"],
+          link: o["Location"],
+          distance: dist
+        });
+
+        prevLat = lat;
+        prevLon = lon;
+      }
+
+      // ❌ IMPORTANT: NO SORT (chain logic break ho jata hai)
 
       const ul = document.getElementById("result");
       ul.innerHTML = "";
 
-      result.forEach(r=>{
+      result.forEach(r => {
         const li = document.createElement("li");
 
         li.innerHTML = `
@@ -153,10 +163,12 @@ async function findOutlets() {
 
     });
 
-  } catch(e){
+  } catch(e) {
+    console.log(e);
     alert("Error loading data");
   }
 }
+
 </script>
 
 </body>
