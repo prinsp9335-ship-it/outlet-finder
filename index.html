@@ -2,34 +2,27 @@
 <html>
 <head>
   <title>Outlet Finder</title>
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
   <style>
     body { font-family: Arial; margin: 20px; }
-
     .container {
       display: flex;
       gap: 40px;
       align-items: flex-start;
     }
     .box { flex: 1; }
-
     input {
       padding: 8px;
       width: 80%;
       margin-bottom: 10px;
     }
-
     button {
       padding: 8px 15px;
       cursor: pointer;
       margin-top: 5px;
     }
-
     ul { list-style: none; padding: 0; }
-
     li {
       margin-bottom: 15px;
       padding: 12px;
@@ -37,54 +30,38 @@
       border-radius: 6px;
       line-height: 1.6;
     }
-
     .name { font-weight: bold; margin-bottom: 6px; }
     .address { font-size: 14px; color: #555; margin-bottom: 6px; }
     .distance { margin: 6px 0; }
-
     #map {
       height: 400px;
       margin-top: 20px;
     }
-
     #mapBtn, #routeBtn {
       display: none;
       margin-right: 10px;
     }
   </style>
 </head>
-
 <body>
-
 <div class="container">
-
   <div class="box">
     <h2>Find Outlets</h2>
-
     <input type="text" id="ids" placeholder="Enter Outlet IDs">
     <button onclick="findOutlets()">Find</button>
-
     <button id="mapBtn" onclick="showAllOnMap()">Show All on Map</button>
     <button id="routeBtn" onclick="openFullRoute()">Start Full Route</button>
-
     <ul id="result"></ul>
-
     <div id="map"></div>
   </div>
-
   <div class="box">
     <h2>Enter Outlet ID</h2>
-
     <input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
     <button onclick="checkId()">Submit</button>
-
     <p id="error" style="color:red;"></p>
   </div>
-
 </div>
-
 <script>
-
 function checkId() {
   let id = document.getElementById("outletId").value;
 
@@ -92,15 +69,11 @@ function checkId() {
     document.getElementById("error").innerText = "Enter valid 6 digit ID";
     return;
   }
-
   window.location.href = "result.html?id=" + id;
 }
-
 const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
-
 let outletsData = [];
 let map;
-
 // ================= MAP INIT =================
 function initMap(lat, lon) {
   map = L.map('map').setView([lat, lon], 12);
@@ -115,12 +88,9 @@ function initMap(lat, lon) {
     .bindPopup("📍 Your Location")
     .openPopup();
 }
-
 // ================= SHOW MAP =================
 function showAllOnMap() {
-
   navigator.geolocation.getCurrentPosition(pos => {
-
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
