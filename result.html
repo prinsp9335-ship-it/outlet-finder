@@ -10,6 +10,7 @@
 <p><b>Outlet ID:</b> <span id="id"></span></p>
 <p><b>Outlet Name:</b> <span id="name"></span></p>
 <p><b>Mobile Number:</b> <span id="mobile"></span></p>
+<p><b>Adderss:</b> <span id="Address"></span></p>
 <p><b>Location:</b> <a id="location" target="_blank">Open Map</a></p>
 <h3>
   <a href="https://prinsp9335-ship-it.github.io/outlet-finder/">
@@ -34,7 +35,7 @@ fetch(sheetURL)
     if(found){
         document.getElementById("name").innerText = found["Outlet Name"] || "N/A";
         document.getElementById("mobile").innerText = found["Phone Num"] || found["Phone Number"] || found["Mobile"] || "N/A";
-
+        document.getElementById("Address").innerText = found["Address"] || "N/A";
         let loc = found["Location"];
         if(loc){
             document.getElementById("location").href = loc;
