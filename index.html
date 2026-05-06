@@ -12,6 +12,7 @@
     .container {
       display: flex;
       gap: 40px;
+      align-items: flex-start;
     }
 
     .box { flex: 1; }
@@ -31,15 +32,16 @@
     ul { list-style: none; padding: 0; }
 
     li {
-      margin-bottom: 12px;
-      padding: 10px;
+      margin-bottom: 15px;
+      padding: 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
+      line-height: 1.6;
     }
 
-    .name { font-weight: bold; }
-    .address { font-size: 13px; color: #555; }
-    .distance { margin-top: 5px; }
+    .name { font-weight: bold; margin-bottom: 6px; }
+    .address { font-size: 14px; color: #555; margin-bottom: 6px; }
+    .distance { margin: 6px 0; }
 
     #map {
       height: 400px;
@@ -71,16 +73,36 @@
     <div id="map"></div>
   </div>
 
+  <div class="box">
+    <h2>Enter Outlet ID</h2>
+
+    <input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
+    <button onclick="checkId()">Submit</button>
+
+    <p id="error" style="color:red;"></p>
+  </div>
+
 </div>
 
 <script>
+
+function checkId() {
+  let id = document.getElementById("outletId").value;
+
+  if (!/^\d{6}$/.test(id)) {
+    document.getElementById("error").innerText = "Enter valid 6 digit ID";
+    return;
+  }
+
+  window.location.href = "result.html?id=" + id;
+}
 
 const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
 
 let outletsData = [];
 let map;
 
-// ---------------- MAP INIT ----------------
+// ================= MAP INIT =================
 function initMap(lat, lon) {
   map = L.map('map').setView([lat, lon], 12);
 
@@ -88,13 +110,14 @@ function initMap(lat, lon) {
     attribution: 'OpenStreetMap'
   }).addTo(map);
 
+  // YOUR LOCATION
   L.marker([lat, lon])
     .addTo(map)
     .bindPopup("📍 Your Location")
     .openPopup();
 }
 
-// ---------------- SHOW MAP ----------------
+// ================= SHOW MAP =================
 function showAllOnMap() {
 
   navigator.geolocation.getCurrentPosition(pos => {
@@ -102,152 +125,152 @@ function showAllOnMap() {
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    if (!map) initMap(lat, lon);
+    if (!map) {
+      initMap(lat, lon);
+    }
 
-    outletsData.forEach(o => {
-
-      const marker = L.marker([o.Latitude, o.Longitude])
-        .addTo(map)
-        .bindTooltip(o.name, { permanent: true });
-
-      marker.on('click', () => {
-        window.open(`https://www.google.com/maps?q=${o.Latitude},${o.Longitude}`, "_blank");
-      });
-    });
-
+    drawMarkers();
   });
 }
 
-// ---------------- FULL ROUTE (CHAIN LOGIC) ----------------
+// ================= MARKERS =================
+function drawMarkers() {
+
+  outletsData.forEach(o => {
+
+    if (o.Latitude && o.Longitude) {
+
+      const marker = L.marker([o.Latitude, o.Longitude])
+        .addTo(map)
+        .bindTooltip(o.name, {
+          permanent: true,
+          direction: "top",
+          offset: [0, -10]
+        });
+
+      // CLICK → GOOGLE MAPS
+      marker.on('click', () => {
+        window.open(
+          `https://www.google.com/maps?q=${o.Latitude},${o.Longitude}`,
+          "_blank"
+        );
+      });
+    }
+  });
+}
+
+// ================= FULL ROUTE =================
 function openFullRoute() {
 
   navigator.geolocation.getCurrentPosition(pos => {
 
-    let prevLat = pos.coords.latitude;
-    let prevLon = pos.coords.longitude;
+    let points = [];
 
-    let total = 0;
+    points.push(`${pos.coords.latitude},${pos.coords.longitude}`);
 
-    let googleRoute = [];
-    googleRoute.push(`${prevLat},${prevLon}`);
-
-    let msg = "ROUTE DETAILS:\n\n";
-
-    outletsData.forEach((o, i) => {
-
-      const lat = o.Latitude;
-      const lon = o.Longitude;
-
-      const R = 6371;
-      const dLat = (lat - prevLat) * Math.PI/180;
-      const dLon = (lon - prevLon) * Math.PI/180;
-
-      const a =
-        Math.sin(dLat/2)**2 +
-        Math.cos(prevLat*Math.PI/180) *
-        Math.cos(lat*Math.PI/180) *
-        Math.sin(dLon/2)**2;
-
-      const dist = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-      total += dist;
-
-      msg += `Step ${i+1}: ${o.name}\nDistance from previous: ${dist.toFixed(2)} km\n\n`;
-
-      prevLat = lat;
-      prevLon = lon;
-
-      googleRoute.push(`${lat},${lon}`);
+    outletsData.forEach(o => {
+      points.push(`${o.Latitude},${o.Longitude}`);
     });
 
-    msg += `TOTAL DISTANCE: ${total.toFixed(2)} km`;
+    const url = "https://www.google.com/maps/dir/" + points.join("/");
 
-    alert(msg);
-
-    const url = "https://www.google.com/maps/dir/" + googleRoute.join("/");
     window.open(url, "_blank");
-
   });
 }
 
-// ---------------- MAIN FUNCTION ----------------
+// ================= MAIN =================
 async function findOutlets() {
 
-  const ids = document.getElementById("ids").value
-    .split(/[\s,]+/)
-    .map(x => x.trim())
-    .filter(x => x);
+  try {
 
-  const res = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/location`);
-  const data = await res.json();
+    const ids = document.getElementById("ids").value
+      .split(/[\s,]+/)
+      .map(x => x.trim())
+      .filter(x => x !== "");
 
-  const filtered = data.filter(d =>
-    ids.includes(String(d["Outlet Id"]))
-  );
+    const res = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/location`);
+    const data = await res.json();
 
-  navigator.geolocation.getCurrentPosition(pos => {
+    const filtered = data.filter(d =>
+      ids.includes(String(d["Outlet Id"]))
+    );
 
-    const userLat = pos.coords.latitude;
-    const userLon = pos.coords.longitude;
-
-    function getDistance(aLat, aLon, bLat, bLon) {
-      const R = 6371;
-      const dLat = (bLat - aLat) * Math.PI/180;
-      const dLon = (bLon - aLon) * Math.PI/180;
-
-      const x =
-        Math.sin(dLat/2)**2 +
-        Math.cos(aLat*Math.PI/180) *
-        Math.cos(bLat*Math.PI/180) *
-        Math.sin(dLon/2)**2;
-
-      return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+    if (!filtered.length) {
+      alert("No matching Outlet IDs found");
+      return;
     }
 
-    let result = [];
-    let prevLat = userLat;
-    let prevLon = userLon;
+    navigator.geolocation.getCurrentPosition(pos => {
 
-    for (let o of filtered) {
+      const userLat = pos.coords.latitude;
+      const userLon = pos.coords.longitude;
 
-      const lat = parseFloat(o.Latitude);
-      const lon = parseFloat(o.Longitude);
+      function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI/180;
+        const dLon = (lon2 - lon1) * Math.PI/180;
 
-      const dist = getDistance(prevLat, prevLon, lat, lon);
+        const a = Math.sin(dLat/2)**2 +
+          Math.cos(lat1*Math.PI/180) *
+          Math.cos(lat2*Math.PI/180) *
+          Math.sin(dLon/2)**2;
 
-      result.push({
-        name: o["Outlet Name"],
-        address: o["Address"],
-        Latitude: lat,
-        Longitude: lon,
-        link: o["Location"],
-        distance: dist
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      const result = [];
+
+      let prevLat = userLat;
+      let prevLon = userLon;
+
+      for (let o of filtered) {
+
+        const lat = parseFloat(o.Latitude);
+        const lon = parseFloat(o.Longitude);
+
+        const dist = getDistance(prevLat, prevLon, lat, lon);
+
+        result.push({
+          name: o["Outlet Name"],
+          address: o["Address"],
+          Latitude: lat,
+          Longitude: lon,
+          link: o["Location"],
+          distance: dist
+        });
+
+        prevLat = lat;
+        prevLon = lon;
+      }
+
+      outletsData = result;
+
+      const ul = document.getElementById("result");
+      ul.innerHTML = "";
+
+      result.forEach(r => {
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+          <div class="name">${r.name}</div>
+          <div class="address">${r.address || "No address"}</div>
+          <div class="distance">Distance: ${r.distance.toFixed(2)} km</div>
+          <a href="${r.link}" target="_blank">Open Location</a>
+        `;
+
+        ul.appendChild(li);
       });
 
-      prevLat = lat;
-      prevLon = lon;
-    }
+      // SHOW BUTTONS AFTER RESULT
+      document.getElementById("mapBtn").style.display = "inline-block";
+      document.getElementById("routeBtn").style.display = "inline-block";
 
-    outletsData = result;
-
-    const ul = document.getElementById("result");
-    ul.innerHTML = "";
-
-    result.forEach(r => {
-      ul.innerHTML += `
-        <li>
-          <div class="name">${r.name}</div>
-          <div class="address">${r.address || ""}</div>
-          <div class="distance">${r.distance.toFixed(2)} km</div>
-        </li>
-      `;
     });
 
-    document.getElementById("mapBtn").style.display = "inline-block";
-    document.getElementById("routeBtn").style.display = "inline-block";
-
-  });
-
+  } catch(e) {
+    console.log(e);
+    alert("Error loading data");
+  }
 }
 
 </script>
