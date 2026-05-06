@@ -2,28 +2,202 @@
 <html>
 <head>
   <title>Outlet Finder</title>
-</head>
-<body>
 
-<h2>Enter Outlet ID</h2>
-
-<input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
-<button onclick="checkId()">Submit</button>
-
-<p id="error" style="color:red;"></p>
-
-<script>
-function checkId() {
-    let id = document.getElementById("outletId").value;
-
-    if (!/^\d{6}$/.test(id)) {
-        document.getElementById("error").innerText = "Please enter correct 6 digit ID";
-        return;
+  <style>
+    body {
+      font-family: Arial;
+      margin: 20px;
     }
 
-    // ✅ FIXED (no 404)
-    window.location.href = "result.html?id=" + id;
+    .container {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+
+    .box {
+      flex: 1;
+    }
+
+    input {
+      padding: 8px;
+      width: 80%;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 15px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      line-height: 1.6;  /* 🔥 spacing inside */
+    }
+
+    .name {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .distance {
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+
+    .address {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    a {
+      text-decoration: none;
+      color: blue;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- LEFT SIDE (अब ये nearest वाला है) -->
+  <div class="box">
+    <h2>Find Nearest Outlets</h2>
+
+    <input type="text" id="ids" placeholder="Enter Outlet IDs">
+    <button onclick="findOutlets()">Find</button>
+
+    <ul id="result"></ul>
+  </div>
+
+  <!-- RIGHT SIDE (अब ये ID वाला है) -->
+  <div class="box">
+    <h2>Enter Outlet ID</h2>
+
+    <input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
+    <button onclick="checkId()">Submit</button>
+
+    <p id="error" style="color:red;"></p>
+  </div>
+
+</div>
+
+<script>
+
+// 🔥 Redirect वाला part
+function checkId() {
+  let id = document.getElementById("outletId").value;
+
+  if (!/^\d{6}$/.test(id)) {
+    document.getElementById("error").innerText = "Please enter correct 6 digit ID";
+    return;
+  }
+
+  window.location.href = "result.html?id=" + id;
 }
+
+// 🔥 Sheet ID
+const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
+
+async function findOutlets() {
+
+  try {
+    const input = document.getElementById("ids").value;
+
+    const ids = input
+      .split(/[\s,]+/)
+      .map(x => x.trim())
+      .filter(x => x !== "");
+
+    const res = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/location`);
+
+    if (!res.ok) throw new Error("Sheet fetch failed");
+
+    const data = await res.json();
+
+    const filtered = data.filter(d =>
+      ids.includes(String(d["Outlet Id"]))
+    );
+
+    if (filtered.length === 0) {
+      alert("No matching Outlet IDs found");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+
+      const userLat = pos.coords.latitude;
+      const userLon = pos.coords.longitude;
+
+      function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(dLat/2) ** 2 +
+          Math.cos(lat1 * Math.PI/180) *
+          Math.cos(lat2 * Math.PI/180) *
+          Math.sin(dLon/2) ** 2;
+
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      const result = filtered.map(o => ({
+        name: o["Outlet Name"],
+        address: o["Address"],   // 👈 NEW
+        distance: getDistance(
+          userLat,
+          userLon,
+          parseFloat(o.Latitude),
+          parseFloat(o.Longitude)
+        ),
+        link: o["link"]
+      }));
+
+      result.sort((a, b) => a.distance - b.distance);
+
+      const ul = document.getElementById("result");
+      ul.innerHTML = "";
+
+      result.forEach(r => {
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+          <div class="name">${r.name}</div>
+
+          <div class="address">${r.address || "Address not available"}</div>
+
+          <div class="distance">Distance: ${r.distance.toFixed(2)} km</div>
+
+          <a href="${r.link}" target="_blank">Open Location</a>
+        `;
+
+        ul.appendChild(li);
+      });
+
+    });
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+}
+
 </script>
 
 </body>
