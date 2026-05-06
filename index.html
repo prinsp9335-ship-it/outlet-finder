@@ -3,6 +3,9 @@
 <head>
   <title>Outlet Finder</title>
 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
   <style>
     body { font-family: Arial; margin: 20px; }
 
@@ -23,6 +26,7 @@
     button {
       padding: 8px 15px;
       cursor: pointer;
+      margin-top: 5px;
     }
 
     ul { list-style: none; padding: 0; }
@@ -38,6 +42,16 @@
     .name { font-weight: bold; margin-bottom: 6px; }
     .address { font-size: 14px; color: #555; margin-bottom: 6px; }
     .distance { margin: 6px 0; }
+
+    #map {
+      height: 400px;
+      margin-top: 20px;
+    }
+
+    #mapBtn, #routeBtn {
+      display: none;
+      margin-right: 10px;
+    }
   </style>
 </head>
 
@@ -45,17 +59,20 @@
 
 <div class="container">
 
-  <!-- LEFT -->
   <div class="box">
-    <h2>Find Nearest Outlets</h2>
+    <h2>Find Outlets</h2>
 
     <input type="text" id="ids" placeholder="Enter Outlet IDs">
     <button onclick="findOutlets()">Find</button>
 
+    <button id="mapBtn" onclick="showAllOnMap()">Show All on Map</button>
+    <button id="routeBtn" onclick="openFullRoute()">Start Full Route</button>
+
     <ul id="result"></ul>
+
+    <div id="map"></div>
   </div>
 
-  <!-- RIGHT -->
   <div class="box">
     <h2>Enter Outlet ID</h2>
 
@@ -82,9 +99,90 @@ function checkId() {
 
 const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
 
+let outletsData = [];
+let map;
+
+// ================= MAP INIT =================
+function initMap(lat, lon) {
+  map = L.map('map').setView([lat, lon], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'OpenStreetMap'
+  }).addTo(map);
+
+  // YOUR LOCATION
+  L.marker([lat, lon])
+    .addTo(map)
+    .bindPopup("📍 Your Location")
+    .openPopup();
+}
+
+// ================= SHOW MAP =================
+function showAllOnMap() {
+
+  navigator.geolocation.getCurrentPosition(pos => {
+
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    if (!map) {
+      initMap(lat, lon);
+    }
+
+    drawMarkers();
+  });
+}
+
+// ================= MARKERS =================
+function drawMarkers() {
+
+  outletsData.forEach(o => {
+
+    if (o.Latitude && o.Longitude) {
+
+      const marker = L.marker([o.Latitude, o.Longitude])
+        .addTo(map)
+        .bindTooltip(o.name, {
+          permanent: true,
+          direction: "top",
+          offset: [0, -10]
+        });
+
+      // CLICK → GOOGLE MAPS
+      marker.on('click', () => {
+        window.open(
+          `https://www.google.com/maps?q=${o.Latitude},${o.Longitude}`,
+          "_blank"
+        );
+      });
+    }
+  });
+}
+
+// ================= FULL ROUTE =================
+function openFullRoute() {
+
+  navigator.geolocation.getCurrentPosition(pos => {
+
+    let points = [];
+
+    points.push(`${pos.coords.latitude},${pos.coords.longitude}`);
+
+    outletsData.forEach(o => {
+      points.push(`${o.Latitude},${o.Longitude}`);
+    });
+
+    const url = "https://www.google.com/maps/dir/" + points.join("/");
+
+    window.open(url, "_blank");
+  });
+}
+
+// ================= MAIN =================
 async function findOutlets() {
 
   try {
+
     const ids = document.getElementById("ids").value
       .split(/[\s,]+/)
       .map(x => x.trim())
@@ -135,6 +233,8 @@ async function findOutlets() {
         result.push({
           name: o["Outlet Name"],
           address: o["Address"],
+          Latitude: lat,
+          Longitude: lon,
           link: o["Location"],
           distance: dist
         });
@@ -143,7 +243,7 @@ async function findOutlets() {
         prevLon = lon;
       }
 
-      // ❌ IMPORTANT: NO SORT (chain logic break ho jata hai)
+      outletsData = result;
 
       const ul = document.getElementById("result");
       ul.innerHTML = "";
@@ -160,6 +260,10 @@ async function findOutlets() {
 
         ul.appendChild(li);
       });
+
+      // SHOW BUTTONS AFTER RESULT
+      document.getElementById("mapBtn").style.display = "inline-block";
+      document.getElementById("routeBtn").style.display = "inline-block";
 
     });
 
