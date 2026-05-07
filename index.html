@@ -1,51 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Outlet Finder</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<style>
-body{font-family:Arial;margin:20px}
-.container{display:flex;gap:40px;align-items:flex-start}
-.box{flex:1}
-input{padding:8px;width:80%;margin-bottom:10px}
-button{padding:8px 15px;cursor:pointer;margin-top:5px}
-ul{list-style:none;padding:0}
-li{margin-bottom:15px;padding:12px;border:1px solid #ccc;border-radius:6px;line-height:1.6}
-.name{font-weight:bold;margin-bottom:6px}
-.address{font-size:14px;color:#555;margin-bottom:6px}
-.distance{margin:6px 0}
-#map{height:400px;margin-top:20px}
-#mapBtn,#routeBtn{display:none;margin-right:10px}
-</style>
+    <title>Employee Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .login-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #error { color: red; font-size: 14px; margin-top: 10px; }
+    </style>
 </head>
 <body>
-<div class="container">
-<div class="box">
-<h2>Find Outlets</h2>
-<input type="text" id="ids" placeholder="Enter Outlet IDs">
-<button onclick="findOutlets()">Find</button>
-<button id="mapBtn" onclick="showAllOnMap()">Show All on Map</button>
-<button id="routeBtn" onclick="openFullRoute()">Start Full Route</button>
-<ul id="result"></ul>
-<div id="map"></div>
-</div>
-<div class="box">
-<h2>Enter Outlet ID</h2>
-<input type="text" id="outletId" placeholder="Enter 6 digit Outlet ID">
-<button onclick="checkId()">Submit</button>
-<p id="error" style="color:red;"></p>
-</div>
+<div class="login-card">
+    <h2>Emp Login</h2>
+    <input type="text" id="empId" placeholder="User ID">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="error"></p>
 </div>
 <script>
-function checkId(){let id=document.getElementById("outletId").value;if(!/^\d{6}$/.test(id)){document.getElementById("error").innerText="Enter valid 6 digit ID";return}window.location.href="result.html?id="+id}
-const SHEET_ID="1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
-let outletsData=[],map;
-function initMap(lat,lon){map=L.map('map').setView([lat,lon],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap'}).addTo(map);L.marker([lat,lon]).addTo(map).bindPopup("📍 Your Location").openPopup()}
-function showAllOnMap(){navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lon=pos.coords.longitude;if(!map)initMap(lat,lon);drawMarkers()})}
-function drawMarkers(){outletsData.forEach(o=>{if(o.Latitude&&o.Longitude){const marker=L.marker([o.Latitude,o.Longitude]).addTo(map).bindTooltip(o.name,{permanent:true,direction:"top",offset:[0,-10]});marker.on('click',()=>{window.open(https://www.google.com/maps?q=${o.Latitude},${o.Longitude},"_blank")})}})}
-function openFullRoute(){navigator.geolocation.getCurrentPosition(pos=>{let points=[${pos.coords.latitude},${pos.coords.longitude}];outletsData.forEach(o=>points.push(${o.Latitude},${o.Longitude}));window.open("https://www.google.com/maps/dir/"+points.join("/"),"_blank")})}
-async function findOutlets(){try{const ids=document.getElementById("ids").value.split(/[\s,]+/).map(x=>x.trim()).filter(x=>x!=="");const res=await fetch(https://opensheet.elk.sh/${SHEET_ID}/location);const data=await res.json();const filtered=data.filter(d=>ids.includes(String(d["Outlet Id"])));if(!filtered.length){alert("No matching Outlet IDs found");return}navigator.geolocation.getCurrentPosition(pos=>{const userLat=pos.coords.latitude,userLon=pos.coords.longitude;function getDistance(lat1,lon1,lat2,lon2){const R=6371,dLat=(lat2-lat1)Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dLat/2)2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}const result=[];let prevLat=userLat,prevLon=userLon;for(let o of filtered){const lat=parseFloat(o.Latitude),lon=parseFloat(o.Longitude),dist=getDistance(prevLat,prevLon,lat,lon);result.push({name:o["Outlet Name"],address:o["Address"],Latitude:lat,Longitude:lon,link:o["Location"],distance:dist});prevLat=lat;prevLon=lon}outletsData=result;const ul=document.getElementById("result");ul.innerHTML="";result.forEach(r=>{const li=document.createElement("li");li.innerHTML=<div class="name">${r.name}</div><div class="address">${r.address||"No address"}</div><div class="distance">Distance: ${r.distance.toFixed(2)} km</div><a href="${r.link}" target="_blank">Open Location</a>;ul.appendChild(li)});document.getElementById("mapBtn").style.display="inline-block";document.getElementById("routeBtn").style.display="inline-block"})}catch(e){console.log(e);alert("Error loading data")}}
+    const API = "https://script.google.com/macros/s/AKfycbybvqYl4yMZqoHHlqDeeFObY97vtpPS2ClSINlogyEZIzCMpEa946BDkNZfwJqlNT4G/exec";
+    async function login() {
+        const id = document.getElementById("empId").value.trim();
+        const pass = document.getElementById("password").value.trim();
+        const res = await fetch(`${API}?action=login&id=${encodeURIComponent(id)}&pass=${encodeURIComponent(pass)}`);
+        const status = await res.text();
+        if (status.trim() === "success") {
+            window.location.href = "outlet_tracking.html?id=" + encodeURIComponent(id);
+        } else {
+            document.getElementById("error").innerText = "Invalid ID or Password";
+        }
+    }
 </script>
 </body>
 </html>
