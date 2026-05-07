@@ -60,28 +60,21 @@ function drawMarkers() {
             
             marker.on('click', () => {
                 window.open(`https://www.google.com/maps?q=${o.Latitude},${o.Longitude}`, "_blank");
-            });
-        }
-    });
-}
+            });}});}
 function openFullRoute() {
     navigator.geolocation.getCurrentPosition(pos => {
         let points = [`${pos.coords.latitude},${pos.coords.longitude}`];
         outletsData.forEach(o => points.push(`${o.Latitude},${o.Longitude}`));
         window.open("https://www.google.com/maps/dir/" + points.join("/"), "_blank");
-    });
-}
-async function findOutlets() {
-    try {
-        const inputIds = document.getElementById("ids").value.split(/[\s,]+/).map(x => x.trim()).filter(x => x !== "");
+    });}
+async function findOutlets() {try {const inputIds = document.getElementById("ids").value.split(/[\s,]+/).map(x => x.trim()).filter(x => x !== "");
         if (inputIds.length === 0) return alert("Please enter Outlet IDs");
         const res = await fetch(`https://opensheet.elk.sh/${SHEET_ID}/location`);
         const data = await res.json();
         const filtered = [];
         inputIds.forEach(id => {
             const found = data.find(d => String(d["Outlet Id"]) === id);
-            if (found) filtered.push(found);
-        });
+            if (found) filtered.push(found); });
         if (!filtered.length) return alert("No matching Outlets found");
         navigator.geolocation.getCurrentPosition(pos => {
             const userLat = pos.coords.latitude;
@@ -91,8 +84,7 @@ async function findOutlets() {
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
                 const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-                return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            }
+                return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));            }
             const result = [];
             let prevLat = userLat;
             let prevLon = userLon;
@@ -108,11 +100,8 @@ async function findOutlets() {
                     link: o["Location"] || `https://www.google.com/maps?q=${lat},${lon}`,
                     distance: dist,
                     type: index === 0 ? "From You" : "From Last Stop"
-                });
-
-                prevLat = lat;
-                prevLon = lon;
-            });
+                });prevLat = lat;
+                prevLon = lon; });
             outletsData = result;
             const ul = document.getElementById("result");
             ul.innerHTML = "";
@@ -123,16 +112,11 @@ async function findOutlets() {
                     <div class="address">${r.address || "Address not available"}</div>
                     <div class="distance">📍 ${r.distance.toFixed(2)} km (${r.type})</div>
                     <a href="${r.link}" target="_blank" class="map-link">🚀 Open in Google Maps</a>
-                `;
-                ul.appendChild(li);
-            });
-            document.getElementById("mapBtn").style.display = "inline-block";
+                `; ul.appendChild(li);
+            }); document.getElementById("mapBtn").style.display = "inline-block";
             document.getElementById("routeBtn").style.display = "inline-block";
-        });
-    } catch (e) {
-        alert("Error loading data. Check Internet or Sheet ID.");
-    }
-}
+        }); } catch (e) {
+        alert("Error loading data. Check Internet or Sheet ID.");    }}
 </script>
 </body>
 </html>
