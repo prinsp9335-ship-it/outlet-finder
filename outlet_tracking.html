@@ -6,21 +6,6 @@
     <title>Outlet Finder & Tracker</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <style>
-        body{font-family:Arial,sans-serif;margin:10px;background:#f4f7f6}
-        .box{background:white;padding:15px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);margin-bottom:20px}
-        #status-bar{background:#1a73e8;color:white;padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;font-weight:bold;font-size:14px}
-        input{padding:12px;width:92%;margin-bottom:10px;border:1px solid #ccc;border-radius:6px;font-size:16px;display:block}
-        button{padding:12px;cursor:pointer;border-radius:6px;border:none;background:#1a73e8;color:white;font-weight:bold;width:100%;margin-bottom:10px;font-size:16px}
-        #map{height:300px;width:100%;border-radius:10px;border:1px solid #ddd;margin-top:15px}
-        ul{list-style:none;padding:0}
-        li{background:#fff;padding:15px;border-left:5px solid #1a73e8;margin-bottom:10px;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,0.05)}
-        .name{font-weight:bold;font-size:16px;color:#1a73e8}
-        .address{font-size:13px;color:#555;margin:5px 0}
-        .distance{font-weight:bold;color:#28a745;font-size:14px}
-        .map-link{display:block;text-align:center;background:#e8f0fe;color:#1a73e8;text-decoration:none;padding:10px;border-radius:4px;margin-top:10px;font-weight:bold}
-        #mapBtn, #routeBtn {display:none; background:#34a853}
-    </style>
 </head>
 <body>
 
@@ -28,11 +13,15 @@
 
 <div class="box">
     <input type="text" id="ids" placeholder="Enter Outlet IDs (e.g. 101, 102)" onkeypress="if(event.key==='Enter') findOutlets()">
+    <br><br>
     <button id="findBtn" onclick="findOutlets()">Find Outlets</button>
-    <button id="mapBtn" onclick="showAllOnMap()">Show All on Map</button>
-    <button id="routeBtn" onclick="openFullRoute()">Start Full Route</button>
+    <button id="mapBtn" onclick="showAllOnMap()" style="display:none;">Show All on Map</button>
+    <button id="routeBtn" onclick="openFullRoute()" style="display:none;">Start Full Route</button>
+    
     <ul id="result"></ul>
-    <div id="map"></div>
+    
+    <!-- Map ka container jisme height zaroori hai varna dikhega nahi -->
+    <div id="map" style="height:300px; width:100%; margin-top:15px;"></div>
 </div>
 
 <script>
@@ -96,20 +85,26 @@ function renderResults(filtered, uLat, uLon) {
             dText = d.toFixed(2) + " km " + (i===0 ? "(From You)" : "(Next)");
         }
         const li = document.createElement("li");
-        li.innerHTML = `<div class="name">${o["Outlet Name"]}</div><div class="address">${o["Address"]||""}</div><div class="distance">📍 ${dText}</div><a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" class="map-link">Open Maps</a>`;
+        li.style.marginBottom = "15px";
+        li.innerHTML = `
+            <div><strong>${o["Outlet Name"]}</strong></div>
+            <div>${o["Address"]||""}</div>
+            <div>📍 ${dText}</div>
+            <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">Open Maps</a>
+        `;
         ul.appendChild(li);
         pLat = lat; pLon = lon;
         outletsData.push({name: o["Outlet Name"], lat, lon});
     });
-    document.getElementById("mapBtn").style.display = "block";
-    document.getElementById("routeBtn").style.display = "block";
+    document.getElementById("mapBtn").style.display = "inline-block";
+    document.getElementById("routeBtn").style.display = "inline-block";
 }
 
 function getDist(l1, n1, l2, n2) {
     const R = 6371;
     const dL = (l2-l1)*Math.PI/180, dN = (n2-n1)*Math.PI/180;
     const a = Math.sin(dL/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dN/2)**2;
-    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function showAllOnMap() {
