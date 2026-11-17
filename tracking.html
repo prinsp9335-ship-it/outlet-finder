@@ -1,21 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Outlet Finder</title>
+<title>Outlet Finder & Route Planner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- html2canvas for map image copying & downloading -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <style>
-    /* 1. Mobile Fix: Body scrolling smooth rakhein */
-    body{font-family:Arial, sans-serif; margin:15px; background:#f9f9f9; -webkit-tap-highlight-color: transparent;}
+    body {
+        font-family: Arial, sans-serif;
+        margin: 15px;
+        background: #f9f9f9;
+        -webkit-tap-highlight-color: transparent;
+    }
     
-    /* 2. Container ko clear rakhein taaki buttons overlap na hon */
-    .box{background:white; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); position: relative; z-index: 10;}
+    .box {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 10;
+    }
     
-    input{padding:12px; width:100%; margin-bottom:10px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box; font-size: 16px; /* 16px se mobile zoom nahi karega */}
+    input {
+        padding: 12px;
+        width: 100%;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
     
-    /* 3. Button Click Fix: Touch area bada kiya hai */
-    button{
+    button {
         padding: 15px; 
         cursor: pointer; 
         background: #1a73e8; 
@@ -27,20 +47,96 @@
         font-weight: bold;
         display: block;
         position: relative;
-        z-index: 20; /* Buttons ko sabse upar rakha hai */
-        touch-action: manipulation; /* Mobile click lag ko khatam karta hai */
+        z-index: 20;
+        touch-action: manipulation;
     }
     
-    #mapBtn{background:#34a853} 
-    #routeBtn{background:#fbbc05; color:black}
+    #mapBtn { background: #34a853; } 
+    #routeBtn { background: #fbbc05; color: black; }
+    #waBtn { background: #25d366; color: white; display: none; }
     
-    ul{list-style:none; padding:0; margin-top: 20px;}
-    li{margin-bottom:15px; padding:12px; border:1px solid #eee; border-radius:6px; background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
+    ul { list-style: none; padding: 0; margin-top: 20px; }
+    li { margin-bottom: 15px; padding: 12px; border: 1px solid #eee; border-radius: 6px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     
-    /* 4. Map Fix: Isse hamesha niche rakhein */
-    #map{height:300px; width: 100%; margin-top:15px; border-radius:8px; display:none; z-index: 5;}
+    /* Map Wrapper & Full Screen / Copy Controls */
+    #mapWrapper {
+        position: relative;
+        width: 100%;
+        height: 380px;
+        margin-top: 15px;
+        border-radius: 8px;
+        display: none;
+        overflow: hidden;
+        z-index: 5;
+        background: #fff;
+    }
+
+    #mapWrapper.fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin-top: 0 !important;
+        border-radius: 0 !important;
+        z-index: 99999 !important;
+    }
+
+    #map {
+        height: 100%;
+        width: 100%;
+    }
+
+    /* Top Control Buttons inside Map */
+    .map-controls {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 100000;
+        display: flex;
+        gap: 8px;
+    }
+
+    .map-ctrl-btn {
+        width: auto !important;
+        padding: 6px 12px !important;
+        margin: 0 !important;
+        background: #ffffff !important;
+        color: #222222 !important;
+        border: 2px solid rgba(0,0,0,0.2) !important;
+        border-radius: 6px !important;
+        font-size: 13px !important;
+        font-weight: bold !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        cursor: pointer;
+    }
+
+    .map-ctrl-btn:hover {
+        background: #f0f0f0 !important;
+    }
+
+    /* Custom Tooltip Styling - Chhota aur Saaf Font taaki hide na ho */
+    .leaflet-tooltip.custom-tooltip {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #bbb;
+        border-radius: 3px;
+        padding: 2px 5px;
+        font-size: 10px;
+        font-weight: bold;
+        color: #1a73e8;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        white-space: nowrap;
+    }
     
-    #status{background:#d4edda; color:#155724; padding:10px; border-radius:5px; margin-bottom:10px; font-size:14px; text-align:center;}
+    #status {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        text-align: center;
+    }
 </style>
 </head>
 <body>
@@ -55,32 +151,36 @@
     
     <button type="button" id="mapBtn" style="display:none" onclick="showAllOnMap()">Show All on Map</button>
     <button type="button" id="routeBtn" style="display:none" onclick="openFullRoute()">Start Full Route</button>
+    <button type="button" id="waBtn" onclick="shareOnWhatsApp()">💬 Share Route on WhatsApp</button>
     
     <ul id="result"></ul>
-    <div id="map"></div>
+
+    <!-- Map Wrapper with Full Screen and Copy Map Buttons -->
+    <div id="mapWrapper">
+        <div class="map-controls">
+            <button type="button" class="map-ctrl-btn" onclick="copyMapImage()">📋 Copy Map</button>
+            <button type="button" class="map-ctrl-btn" id="fsBtn" onclick="toggleFullScreen()">⛶ Full Screen</button>
+        </div>
+        <div id="map"></div>
+    </div>
 </div>
 
 <script>
-// Nayi API Link
 const API = "https://script.google.com/macros/s/AKfycbxTiAXI4kCsu4ZZafbBUyl2q_8AWIpvD0lmYHHvB4SBBjK-p9gq7o9E6_ObnQkFdvN2/exec";
-const SHEET_ID="1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
+const SHEET_ID = "1u7RN-0d34sy01gXlJjc16C-ZTOdsQPj94X9NXSWabqo";
 const urlParams = new URLSearchParams(window.location.search);
-const empId = urlParams.get("id");
+const empId = urlParams.get("id") || "Active";
 
-if(!empId || empId === "null") {
-    alert("Session Expired! Please login again.");
-    window.location.href = "index.html";
-} else {
-    document.getElementById("uid").innerText = empId;
-    // Real-time tracking for Admin
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(pos => {
-            fetch(`${API}?id=${encodeURIComponent(empId)}&lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`);
-        }, null, {enableHighAccuracy:true});
-    }, 15000);
-}
+document.getElementById("uid").innerText = empId;
 
-let outletsData=[], map;
+// Background tracking
+setInterval(() => {
+    navigator.geolocation.getCurrentPosition(pos => {
+        fetch(`${API}?id=${encodeURIComponent(empId)}&lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`);
+    }, null, {enableHighAccuracy:true});
+}, 15000);
+
+let outletsData = [], map;
 
 async function findOutlets() {
     const rawIds = document.getElementById("ids").value;
@@ -89,9 +189,8 @@ async function findOutlets() {
         return;
     }
     
-    const ids = rawIds.split(/[\s,]+/).map(x=>x.trim()).filter(x=>x!=="");
+    const ids = rawIds.split(/[\s,]+/).map(x => x.trim()).filter(x => x !== "");
 
-    // Button text change karein taaki pata chale kaam ho raha hai
     const btn = document.getElementById("mainFindBtn");
     btn.innerText = "Searching... Please Wait";
     btn.disabled = true;
@@ -111,12 +210,12 @@ async function findOutlets() {
                 return;
             }
 
-            function getDistance(lat1,lon1,lat2,lon2){
-                const R=6371; 
-                const dLat=(lat2-lat1)*Math.PI/180;
-                const dLon=(lon2-lon1)*Math.PI/180;
-                const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-                return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+            function getDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371; 
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2)**2;
+                return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
 
             outletsData = filtered.map(o => ({
@@ -128,20 +227,20 @@ async function findOutlets() {
                 dist: getDistance(userLat, userLon, parseFloat(o.Latitude), parseFloat(o.Longitude))
             }));
 
-            // List render karein
             const ul = document.getElementById("result");
             ul.innerHTML = "";
             outletsData.forEach(r => {
                 const li = document.createElement("li");
                 li.innerHTML = `<div style="color:#1a73e8; font-weight:bold">${r.name}</div>
-                                <div style="font-size:13px; color:#666">${r.address||""}</div>
+                                <div style="font-size:13px; color:#666">${r.address || ""}</div>
                                 <div style="margin:5px 0"><b>Dist:</b> ${r.dist.toFixed(2)} km</div>
                                 <a href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}" target="_blank" style="color:green; text-decoration:none; font-weight:bold">📍 Open in Maps</a>`;
                 ul.appendChild(li);
             });
 
-            document.getElementById("mapBtn").style.display="block";
-            document.getElementById("routeBtn").style.display="block";
+            document.getElementById("mapBtn").style.display = "block";
+            document.getElementById("routeBtn").style.display = "block";
+            document.getElementById("waBtn").style.display = "block";
             resetBtn();
             
         } catch(e) { 
@@ -161,21 +260,90 @@ function resetBtn() {
 }
 
 function showAllOnMap() {
-    document.getElementById("map").style.display="block";
-    // Map code stays same...
+    const mapWrapper = document.getElementById("mapWrapper");
+    mapWrapper.style.display = "block";
+
     navigator.geolocation.getCurrentPosition(pos => {
-        const {latitude:lat, longitude:lng} = pos.coords;
+        const {latitude: lat, longitude: lng} = pos.coords;
         if(!map) {
             map = L.map('map').setView([lat, lng], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        } else {
+            map.invalidateSize();
         }
-        L.marker([lat, lng]).addTo(map).bindPopup("You").openPopup();
-        outletsData.forEach(o => {
-            if(o.lat && o.lng) L.marker([o.lat, o.lng]).addTo(map).bindTooltip(o.name, {permanent:true});
+
+        // Chhote Map Markers
+        const smallIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [16, 26],
+            iconAnchor: [8, 26],
+            popupAnchor: [0, -24],
+            tooltipAnchor: [10, -18]
         });
-        // Scroll to map
-        document.getElementById("map").scrollIntoView({behavior: 'smooth'});
+
+        // User Marker
+        L.marker([lat, lng], {icon: smallIcon}).addTo(map).bindPopup("You").openPopup();
+
+        // Outlet Markers with dynamic directions to prevent overlapping and hiding
+        const directions = ['top', 'bottom', 'left', 'right'];
+        outletsData.forEach((o, index) => {
+            if(o.lat && o.lng) {
+                const dir = directions[index % directions.length];
+                L.marker([o.lat, o.lng], {icon: smallIcon})
+                 .addTo(map)
+                 .bindTooltip(o.name, {permanent: true, direction: dir, className: 'custom-tooltip'});
+            }
+        });
+
+        mapWrapper.scrollIntoView({behavior: 'smooth'});
     });
+}
+
+// Full Screen Toggle & Map Resize Fix
+function toggleFullScreen() {
+    const wrapper = document.getElementById("mapWrapper");
+    const btn = document.getElementById("fsBtn");
+
+    wrapper.classList.toggle("fullscreen");
+
+    if (wrapper.classList.contains("fullscreen")) {
+        btn.innerText = "✖ Exit";
+    } else {
+        btn.innerText = "⛶ Full Screen";
+    }
+
+    if (map) {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 250);
+    }
+}
+
+// Copy Map / Export as Image function
+function copyMapImage() {
+    const mapElement = document.getElementById("mapWrapper");
+    html2canvas(mapElement, {useCORS: true, allowTaint: true}).then(canvas => {
+        canvas.toBlob(blob => {
+            try {
+                navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(() => {
+                    alert("📸 Map image clipboard par copy ho gayi hai!");
+                }).catch(() => {
+                    downloadCanvasAsImage(canvas);
+                });
+            } catch (err) {
+                downloadCanvasAsImage(canvas);
+            }
+        });
+    });
+}
+
+function downloadCanvasAsImage(canvas) {
+    const link = document.createElement('a');
+    link.download = 'outlet-map.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    alert("📥 Map image download ho gayi hai!");
 }
 
 function openFullRoute() {
@@ -183,6 +351,18 @@ function openFullRoute() {
         let origin = `${pos.coords.latitude},${pos.coords.longitude}`;
         let dests = outletsData.map(o => `${o.lat},${o.lng}`).join('/');
         window.open(`https://www.google.com/maps/dir/${origin}/${dests}`, "_blank");
+    });
+}
+
+function shareOnWhatsApp() {
+    navigator.geolocation.getCurrentPosition(pos => {
+        let origin = `${pos.coords.latitude},${pos.coords.longitude}`;
+        let dests = outletsData.map(o => `${o.lat},${o.lng}`).join('/');
+        let routeUrl = `https://www.google.com/maps/dir/${origin}/${dests}`;
+        
+        let message = `📍 *Outlet Route Details*\n\nYeh lijiye hamara aaj ka full route map link (Is par click karke aap zoom aur navigate kar sakte hain):\n${routeUrl}`;
+        
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, "_blank");
     });
 }
 </script>
